@@ -1,0 +1,8 @@
+venv
+submission
+data
+train_data
+project
+**/*__pycache__
+val_grader
+.ipynb_checkpoints/

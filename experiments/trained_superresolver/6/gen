@@ -1,0 +1,64 @@
+
+class ResidualBlock(nn.Module):
+    def __init__(self, in_features):
+        super(ResidualBlock, self).__init__()
+        self.conv_block = nn.Sequential(
+            nn.Conv2d(in_features, in_features, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(in_features),
+            nn.ReLU(),
+            nn.Conv2d(in_features, in_features, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(in_features),
+            nn.ReLU()
+        )
+        
+
+    def forward(self, x):
+        return self.conv_block(x)
+
+
+class GeneratorResNet(nn.Module):
+    def __init__(self, in_channels=3, out_channels=3, n_residual_blocks=16):
+        super(GeneratorResNet, self).__init__()
+
+        # First layer
+        self.conv1 = nn.Sequential(nn.Conv2d(in_channels, 128, kernel_size=3, stride=1, padding=1), nn.ReLU())
+        
+        # Residual blocks
+        self.res_blocks1= ResidualBlock(128)
+        #self.res_blocks2 = ResidualBlock(64)
+
+        # Upsampling layers
+        self.upsampling0 = nn.Sequential(nn.Upsample(scale_factor=2),
+                                          nn.Conv2d(128,64,3,1,1),
+                                          nn.ReLU())
+        self.res_block3 = ResidualBlock(64)    
+    
+        self.upsampling1 = nn.Sequential(nn.Upsample(scale_factor=2),
+                                          nn.Conv2d(64,64,3,1,1),
+                                          nn.ReLU())
+        self.res_block4 = ResidualBlock(64)    
+    
+        self.conv3 = nn.Sequential(nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1), nn.BatchNorm2d(64), nn.ReLU())
+#        self.conv4 = nn.Sequential(nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=2), nn.BatchNorm2d(64), nn.PReLU())
+#        self.conv5 = nn.Sequential(nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1), nn.BatchNorm2d(64), nn.PReLU())
+#        self.conv6 = nn.Sequential(nn.Conv2d(64, 64, kernel_size=5, stride=1, padding=2), nn.BatchNorm2d(64), nn.PReLU())
+
+        # Final output layer
+        self.conv7 = nn.Sequential(nn.Conv2d(64, out_channels, kernel_size=3, stride=1, padding=1), nn.ReLU())
+
+    def forward(self, x):
+        out1 = self.conv1(x)
+        out2 = self.res_blocks1(out1)
+        out1 = torch.add(out1,out2)
+        
+        out2 = self.upsampling0(out1)
+        out = self.res_block3(out2)
+        out1 = torch.add(out, out2)
+        out2 = self.upsampling1(out1)
+        out = self.res_block4(out2)
+        out1 = torch.add(out, out2)
+        #out1 = self.conv3(out1)
+        out = self.conv7(out1)
+        return out
+
+
